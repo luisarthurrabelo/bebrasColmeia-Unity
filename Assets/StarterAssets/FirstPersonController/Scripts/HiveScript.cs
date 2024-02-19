@@ -15,11 +15,6 @@ public class HiveScript : MonoBehaviour
         GetComponent<ObjectPosition>().TilePosition = new Vector2(-1, -1);
     }
 
-    private void Update()
-    {
-        Debug.Log(GetComponent<ObjectPosition>().TilePosition);
-    }
-
     private void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.CompareTag("ItemSupport"))

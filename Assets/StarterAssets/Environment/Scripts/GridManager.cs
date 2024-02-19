@@ -10,6 +10,8 @@ public class GridManager : MonoBehaviour
     [SerializeField] private float _tileSize = 1.0f;
     [SerializeField] private Vector3 _centerPosition;
     [SerializeField] private Tile _tilePrefab;
+
+    [SerializeField] public Transform GardenParentObject;
     [SerializeField] private GameObject _flowerObjectPrefab;
     [SerializeField] private GameObject _HiveSupportPrefab;
 
@@ -19,52 +21,36 @@ public class GridManager : MonoBehaviour
     private Dictionary<Vector2, Tile> _tiles;
     private int[,] gardenMatrix;
 
+    private Vector2 OptSolution;
+
+    public Vector2 OptimalSolution
+    {
+        get { return OptSolution; }
+        set { OptSolution = value; }
+    }
+
+    public bool wrongGuess;
+
     void Start()
     {
         GenerateGrid();
         gardenMatrix = new int[_width, _width];
 
-        List<Vector2> randomPositions = GenerateRandomPositions(_width, flowers_number + hivePosition_number);
-        Tile tile = new Tile();
+        invokeGardenObjects();
+        OptimalSolution = FindOptimalSolution(gardenMatrix);
+    }
 
-        //foreach (Vector2 position in randomPositions)
-        //{
-        //    Debug.Log(position);
-        //}
-
-        int count = 0;
-
-        foreach (Vector2 position in randomPositions)
+    private void Update()
+    {
+        if (wrongGuess)
         {
+            clearMatrix();
+            DestroyChildrens(GardenParentObject);
 
-            if (count < flowers_number)
-            {
-                gardenMatrix[(int)position.x, (int)position.y] = 1;
-
-                tile = GetTileAtPosition(position);
-                var spawnedTile = Instantiate(_flowerObjectPrefab, new Vector3(tile.transform.position.x, 0.5f, tile.transform.position.z), Quaternion.identity);
-                spawnedTile.name = $"Flower {tile.name}";
-            }
-            else
-            {
-                gardenMatrix[(int)position.x, (int)position.y] = 2;
-
-                tile = GetTileAtPosition(position);
-                var spawnedTile = Instantiate(_HiveSupportPrefab, new Vector3(tile.transform.position.x, 0.1f, tile.transform.position.z), Quaternion.identity);
-                spawnedTile.name = $"BeeHive Support {tile.name}";
-                spawnedTile.GetComponent<ObjectPosition>().TilePosition = position;
-            }
-       
-            count++;
+            invokeGardenObjects();
+            OptimalSolution = FindOptimalSolution(gardenMatrix);
+            wrongGuess = false;
         }
-
-        //for (int i = 0; i < gardenMatrix.GetLength(0); i++)
-        //{
-        //    for (int j = 0; j < gardenMatrix.GetLength(1); j++)
-        //    {
-        //        Debug.Log("Elemento na posição (" + i + "," + j + "): " + gardenMatrix[i, j]);
-        //    }
-        //}
     }
 
     void GenerateGrid()
@@ -137,27 +123,103 @@ public class GridManager : MonoBehaviour
         return positions;
     }
 
-    //public void addHiveOnHiveSupMatrix(Vector2 position, int value)
-    //{
+    public void invokeGardenObjects()
+    {
+        List<Vector2> randomPositions = GenerateRandomPositions(_width, flowers_number + hivePosition_number);
+        Tile tile = new Tile();
 
-    //    if (position.x >= 0 && position.x < _width && position.y >= 0 && position.y < _width)
-    //    {
-    //        int posX = (int)position.x;
-    //        int posY = (int)position.y;
+        int count = 0;
 
-    //        gardenMatrix[posX, posY] = value;
-    //    }
-    //    else
-    //    {
-    //        Debug.LogWarning("Posição fora dos limites da matriz.");
-    //    }
+        foreach (Vector2 position in randomPositions)
+        {
 
-    //    //for (int i = 0; i < gardenMatrix.GetLength(0); i++)
-    //    //{
-    //    //    for (int j = 0; j < gardenMatrix.GetLength(1); j++)
-    //    //    {
-    //    //        Debug.Log("Elemento na posição (" + i + "," + j + "): " + gardenMatrix[i, j]);
-    //    //    }
-    //    //}
-    //}
+            if (count < flowers_number)
+            {
+                gardenMatrix[(int)position.x, (int)position.y] = 1;
+
+                tile = GetTileAtPosition(position);
+                var spawnedTile = Instantiate(_flowerObjectPrefab, new Vector3(tile.transform.position.x, 0.5f, tile.transform.position.z), Quaternion.identity, GardenParentObject);
+                spawnedTile.name = $"Flower {tile.name}";
+            }
+            else
+            {
+                gardenMatrix[(int)position.x, (int)position.y] = 2;
+
+                tile = GetTileAtPosition(position);
+                var spawnedTile = Instantiate(_HiveSupportPrefab, new Vector3(tile.transform.position.x, 0.1f, tile.transform.position.z), Quaternion.identity, GardenParentObject);
+                spawnedTile.name = $"BeeHive Support {tile.name}";
+                spawnedTile.GetComponent<ObjectPosition>().TilePosition = position;
+            }
+
+            count++;
+        }
+    }
+
+    public Vector2 FindOptimalSolution(int[,] matrix)
+    {
+        List<Vector2> posicoesPossiveis = new List<Vector2>();
+
+        for (int i = 0; i < matrix.GetLength(0); i++)
+        {
+            for (int j = 0; j < matrix.GetLength(1); j++)
+            {
+                if (matrix[i, j] == 2) // Verifique se é uma posição possível para a colmeia
+                {
+                    posicoesPossiveis.Add(new Vector2(i, j));
+                }
+            }
+        }
+
+
+        float menorDistanciaTotal = float.MaxValue;
+        Vector2 posicaoOtima = Vector2.zero;
+
+        // Itera sobre as posições possíveis para a colmeia
+        foreach (Vector2 posicaoPossivel in posicoesPossiveis)
+        {
+            float distanciaTotal = 0;
+
+            // Itera sobre as posições das flores
+            for (int i = 0; i < matrix.GetLength(0); i++)
+            {
+                for (int j = 0; j < matrix.GetLength(1); j++)
+                {
+                    if (matrix[i, j] == 1) // Verifica se é uma flor
+                    {
+                        // Calcula a distância entre a posição possível da colmeia e a posição da flor
+                        float distancia = Vector2.Distance(posicaoPossivel, new Vector2(i, j));
+                        distanciaTotal += distancia;
+                    }
+                }
+            }
+
+            // Atualiza a posição ótima se a distância total for menor
+            if (distanciaTotal < menorDistanciaTotal)
+            {
+                menorDistanciaTotal = distanciaTotal;
+                posicaoOtima = posicaoPossivel;
+            }
+        }
+
+        return posicaoOtima;
+    }
+
+    public void clearMatrix()
+    {
+        for (int i = 0; i < gardenMatrix.GetLength(0); i++)
+        {
+            for (int j = 0; j < gardenMatrix.GetLength(1); j++)
+            {
+                gardenMatrix[i, j] = 0;
+            }
+        }
+    }
+
+    void DestroyChildrens(Transform parent)
+    {
+        foreach (Transform child in parent)
+        {
+            Destroy(child.gameObject);
+        }
+    }
 }

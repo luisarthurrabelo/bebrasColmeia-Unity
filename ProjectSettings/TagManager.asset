@@ -8,6 +8,7 @@ TagManager:
   - CanPickUp
   - ItemSupport
   - NPC
+  - Button
   layers:
   - Default
   - TransparentFX
