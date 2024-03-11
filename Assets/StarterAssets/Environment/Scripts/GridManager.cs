@@ -6,7 +6,7 @@ using static UnityEditor.PlayerSettings;
 
 public class GridManager : MonoBehaviour
 {
-    [SerializeField] private int _width, _height;
+    [SerializeField] public int _width, _height;
     [SerializeField] private float _tileSize = 1.0f;
     [SerializeField] private Vector3 _centerPosition;
     [SerializeField] private Tile _tilePrefab;
@@ -19,7 +19,7 @@ public class GridManager : MonoBehaviour
     [SerializeField] private int hivePosition_number;
 
     private Dictionary<Vector2, Tile> _tiles;
-    private int[,] gardenMatrix;
+    public int[,] gardenMatrix;
 
     private Vector2 OptSolution;
 
@@ -61,14 +61,14 @@ public class GridManager : MonoBehaviour
         float gridHeight = _height * _tileSize;
 
         float startX = _centerPosition.x - gridWidth / 2.0f;
-        float startZ = _centerPosition.z - gridHeight / 2.0f;
+        float startY = _centerPosition.z - gridHeight / 2.0f;
 
         for (int i = 0; i < _width; i++)
         {
             for(int j = 0; j < _height; j++)
             {
                 float x = startX + i * _tileSize;
-                float y = startZ + j * _tileSize;
+                float y = startY + j * _tileSize;
 
                 var spawnedTile = Instantiate(_tilePrefab, new Vector3(x, 0.01f, y), Quaternion.identity);
                 spawnedTile.name = $"Tile {i} {j}";
